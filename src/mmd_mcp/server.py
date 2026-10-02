@@ -535,7 +535,11 @@ def mmd_get_selected_bone_transform(hwnd: int | None = None) -> dict[str, Any]:
 
 @mcp.tool(annotations=READ_ONLY)
 def mmd_list_windows() -> list[dict]:
-    """List running MMD windows, including HWND, PID, title and minimized state."""
+    """List MMD main/control windows, one per instance, with HWND, PID and title.
+
+    Separate-view render windows are excluded. Use the listed hwnd for editing
+    and capture; capture automatically resolves the associated render window.
+    """
     return [window.public_info() for window in list_windows()]
 
 
@@ -561,14 +565,18 @@ def mmd_get_ui_state(hwnd: int | None = None) -> dict[str, Any]:
 
 
 @mcp.tool(annotations=READ_ONLY)
-def mmd_capture_window(hwnd: int | None = None) -> Image:
-    """Return a PNG of the MMD window including UI and any visible guides.
+def mmd_capture_window(hwnd: int | None = None,
+                       view: Literal["auto", "main", "render"] = "auto") -> Image:
+    """Return a PNG of MMD's current display and any visible guides.
 
-    If multiple MMD windows exist, specify hwnd from mmd_list_windows.
-    The window must be restored and modal dialogs closed. No scene edits are made.
+    auto captures the separate-view render window when active, otherwise the
+    main window including UI. main always captures the editing UI; render
+    requires separate view. hwnd is the main/control HWND from mmd_list_windows.
+    If multiple MMD instances exist, specify hwnd. Restore the main and capture
+    windows and close modal dialogs before capturing. No scene edits are made.
     This captures the current display; it does not guarantee a render after an edit.
     """
-    return Image(data=capture_png(hwnd), format="png")
+    return Image(data=capture_png(hwnd, view=view), format="png")
 
 
 def main():

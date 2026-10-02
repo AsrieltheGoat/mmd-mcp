@@ -13,7 +13,7 @@ import win32process
 from .bone_controls import _message
 from .scene_controls import context, mutation
 from .ui_state import UIReader, get_ui_state, NativeMessageError
-from .windows import list_windows, select_window
+from .windows import find_render_window, list_windows, select_window
 
 LOADS = {"model": ({".pmd", ".pmx"}, 435), "project": ({".pmm"}, 205),
          "pose": ({".vpd"}, 202), "motion": ({".vmd"}, 209),
@@ -57,6 +57,10 @@ def window_text(hwnd):
 
 def owned_dialogs(target):
     verify_process(target)
+    roots = {target.hwnd}
+    render = find_render_window(target)
+    if render is not None:
+        roots.add(render.hwnd)
     dialogs = []
 
     def visit(handle, _):
@@ -67,10 +71,10 @@ def owned_dialogs(target):
                 return
             owner = win32gui.GetWindow(handle, 4)
             visited = set()
-            while owner and owner != target.hwnd and owner not in visited:
+            while owner and owner not in roots and owner not in visited:
                 visited.add(owner)
                 owner = win32gui.GetWindow(owner, 4)
-            if owner != target.hwnd:
+            if owner not in roots:
                 return
             children = []
 

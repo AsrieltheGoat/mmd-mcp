@@ -63,8 +63,8 @@ Version 0.3.0 exposes 50 tools. Use batch writes even for one item.
 
 | Tool | Description |
 | --- | --- |
-| `mmd_list_windows` | MMD window handles, process IDs, and titles. |
-| `mmd_capture_window` | PNG capture of the entire window, including the UI. |
+| `mmd_list_windows` | Main/control window handles, process IDs, and titles; detached viewports are not additional instances. |
+| `mmd_capture_window` | PNG capture. Default `view="auto"` captures the detached viewport when active, otherwise the main UI; `main` captures the UI and `render` requires a detached viewport. |
 | `mmd_list_models` / `mmd_select_model` | List models and select by name or index; index 0 selects camera, light, and accessories. |
 | `mmd_get_ui_state` | Displayed frame, model selection, morph lists and displayed weights, and IK selector. |
 | `mmd_list_bones` / `mmd_select_bone` | List bones and select one by name or index. |
@@ -104,6 +104,8 @@ Version 0.3.0 exposes 50 tools. Use batch writes even for one item.
 | `mmd_delete_models` / `mmd_new_project` | Delete explicitly identified models or discard the current scene and create a new project. |
 
 Common behavior: operations that select bones switch BOX or other operation modes back to Select automatically. `operation_mode_switched_from` reports the previous mode.
+
+Separate-window display is supported. For editing and capture, use the main `hwnd` returned by `mmd_list_windows`. Bone/camera controls moved into the detached viewport are resolved within the same MMD instance. Captures and motion previews automatically capture that viewport; use `mmd_capture_window` with `view="main"` to inspect the editing UI. Reconnect the MCP server after updating.
 
 Example using the bundled Miku in English Mode (add `hwnd` when needed):
 

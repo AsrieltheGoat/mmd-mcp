@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 import win32con
 import win32gui
 
-from .windows import select_window
+from .windows import capture_window, select_window
 
 _user32 = ctypes.WinDLL("user32", use_last_error=True)
 _send = _user32.SendMessageTimeoutW
@@ -84,7 +84,21 @@ class UIReader:
         return ctypes.c_ssize_t(result.value).value
 
     def control(self, control_id: int, expected_class: str):
-        hwnd = win32gui.GetDlgItem(self.target.hwnd, control_id)
+        def find(parent):
+            try:
+                return win32gui.GetDlgItem(parent, control_id)
+            except win32gui.error as error:
+                if error.winerror != 1421:  # ERROR_CONTROL_ID_NOT_FOUND
+                    raise
+                return 0
+
+        hwnd = find(self.target.hwnd)
+        if not hwnd:
+            # Separate view reparents the transform panel into MicWindow.
+            # Resolve only the viewport belonging to this same MMD instance.
+            render = capture_window(self.target)
+            if render.hwnd != self.target.hwnd:
+                hwnd = find(render.hwnd)
         if not hwnd or win32gui.GetClassName(hwnd) != expected_class:
             raise RuntimeError(f"Unsupported MMD layout: expected {expected_class} control {control_id}.")
         return hwnd

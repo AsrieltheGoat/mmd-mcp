@@ -69,8 +69,8 @@ v0.3.0の公開MCPツールは50個です。ボーン・表情・カメラ・ア
 
 | ツール | 内容 |
 | --- | --- |
-| `mmd_list_windows` | MMDのHWND・PID・タイトル |
-| `mmd_capture_window` | UIを含むウィンドウ全体のPNG |
+| `mmd_list_windows` | MMD本体のHWND・PID・タイトル（別窓表示の窓は別インスタンスとして数えない） |
+| `mmd_capture_window` | PNG撮影。既定の `view="auto"` は別窓表示中なら表示窓、通常時はUIを含む本体。`main` は本体、`render` は別窓の表示窓 |
 | `mmd_list_models` / `mmd_select_model` | モデル一覧・名前またはインデックスで選択。0はカメラ・照明・アクセサリ |
 | `mmd_get_ui_state` | 表示フレーム、モデル、表情一覧・表示値、IK選択欄 |
 | `mmd_list_bones` / `mmd_select_bone` | ボーン一覧・名前またはインデックスで単一選択 |
@@ -110,6 +110,8 @@ v0.3.0の公開MCPツールは50個です。ボーン・表情・カメラ・ア
 | `mmd_delete_models` / `mmd_new_project` | 明示したモデルの削除、現在シーンを破棄して新規作成 |
 
 共通の動作：ボーン選択を伴う操作は、パネルがBOX選択などのモードなら自動で「選択」へ戻します。変更前のモードは `operation_mode_switched_from` に返します。
+
+「表示 → 別窓」にも対応します。操作・撮影とも `hwnd` には `mmd_list_windows` が返す本体の値を使います。別窓へ移ったボーン・カメラの操作欄は同じMMDの表示窓から取得します。撮影・モーションプレビューは別窓の3D表示を自動で撮り、編集UIを確認したい場合は `mmd_capture_window` に `view="main"` を指定します。更新後はMCPサーバーを再接続してください。
 
 ## 操作例
 

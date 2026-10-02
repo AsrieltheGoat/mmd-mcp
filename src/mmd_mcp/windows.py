@@ -8,6 +8,9 @@ import win32con
 import win32gui
 import win32process
 
+MAIN_WINDOW_CLASS = "Polygon Movie Maker"
+RENDER_WINDOW_CLASS = "MicWindow"
+
 
 @dataclass(frozen=True)
 class MMDWindow:
@@ -23,7 +26,11 @@ class MMDWindow:
 
 
 def list_windows() -> list[MMDWindow]:
-    """Only expose visible, unowned windows owned by MikuMikuDance.exe."""
+    """Expose one visible main/control window per MMD instance.
+
+    Separate-view render windows are also unowned top-level windows, but have
+    are not independent editor instances and must not be counted as such.
+    """
     result = []
 
     def visit(hwnd, _):
@@ -31,6 +38,8 @@ def list_windows() -> list[MMDWindow]:
             if not win32gui.IsWindowVisible(hwnd):
                 return
             if win32gui.GetWindow(hwnd, win32con.GW_OWNER):
+                return
+            if win32gui.GetClassName(hwnd) != MAIN_WINDOW_CLASS:
                 return
             _, pid = win32process.GetWindowThreadProcessId(hwnd)
             process = psutil.Process(pid)
@@ -60,4 +69,53 @@ def select_window(hwnd: int | None = None) -> MMDWindow:
         raise ValueError("MMD is minimized. Restore its window before capturing.")
     if not win32gui.IsWindowEnabled(window.hwnd):
         raise ValueError("MMD has a modal dialog open. Close it before capturing.")
+    render = find_render_window(window)
+    if render is not None and not win32gui.IsWindowEnabled(render.hwnd):
+        raise ValueError("MMD has a modal dialog open in separate view. Close it before continuing.")
     return window
+
+
+def find_render_window(window: MMDWindow) -> MMDWindow | None:
+    """Find the related viewport even while a modal dialog disables it."""
+    renders = []
+
+    def visit(hwnd, _):
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                return
+            if win32gui.GetWindow(hwnd, win32con.GW_OWNER):
+                return
+            if win32gui.GetClassName(hwnd) != RENDER_WINDOW_CLASS:
+                return
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
+            if pid != window.pid:
+                return
+            renders.append(MMDWindow(
+                hwnd, pid, win32gui.GetWindowText(hwnd),
+                bool(win32gui.IsIconic(hwnd)), window.process_started,
+            ))
+        except pywintypes.error:
+            return
+
+    win32gui.EnumWindows(visit, None)
+    if len(renders) > 1:
+        raise ValueError("Multiple MMD render windows found for this instance.")
+    return renders[0] if renders else None
+
+
+def capture_window(window: MMDWindow, view: str = "auto") -> MMDWindow:
+    """Resolve a capture surface within an already validated MMD instance."""
+    if view not in {"auto", "main", "render"}:
+        raise ValueError("view must be auto, main or render.")
+    if view == "main":
+        return window
+    render = find_render_window(window)
+    if render is None:
+        if view == "render":
+            raise ValueError("MMD separate-view render window not found. Enable separate view first.")
+        return window
+    if render.minimized:
+        raise ValueError("MMD render window is minimized. Restore it before capturing.")
+    if not win32gui.IsWindowEnabled(render.hwnd):
+        raise ValueError("MMD render window is disabled. Close modal dialogs before capturing.")
+    return render

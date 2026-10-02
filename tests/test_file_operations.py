@@ -4,9 +4,29 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from mmd_mcp import file_operations as files
+from mmd_mcp.windows import MMDWindow
 
 
 class FileTests(unittest.TestCase):
+    def test_dialog_ownership_includes_viewport_and_nested_dialogs_only(self):
+        main = MMDWindow(10, 100, "MikuMikuDance", False, 1.0)
+        render = MMDWindow(11, 100, "MMD", False, 1.0)
+        owners = {30: 10, 31: 11, 32: 31, 33: 99, 34: 11}
+        def enumerate_windows(callback, arg):
+            for handle in owners:
+                callback(handle, arg)
+        with patch.object(files, "verify_process"), \
+             patch.object(files, "find_render_window", return_value=render), \
+             patch.object(files.win32gui, "EnumWindows", side_effect=enumerate_windows), \
+             patch.object(files.win32gui, "EnumChildWindows"), \
+             patch.object(files.win32gui, "IsWindowVisible", return_value=True), \
+             patch.object(files.win32gui, "GetClassName", return_value="#32770"), \
+             patch.object(files.win32process, "GetWindowThreadProcessId",
+                          side_effect=lambda h: (1, 200 if h == 34 else 100)), \
+             patch.object(files.win32gui, "GetWindow", side_effect=lambda h, _: owners.get(h, 0)), \
+             patch.object(files, "window_text", return_value="dialog"):
+            self.assertEqual([d["hwnd"] for d in files.owned_dialogs(main)], [30, 31, 32])
+
     def test_existing_output_needs_explicit_overwrite(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "scene.pmm"

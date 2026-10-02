@@ -6,24 +6,27 @@ import tempfile
 import threading
 from pathlib import Path
 
-from .windows import select_window
+from .windows import capture_window, select_window
 
 _capture_lock = threading.Lock()
 
 
-def capture_png(hwnd: int | None = None, timeout_seconds: float = 15) -> bytes:
+def capture_png(hwnd: int | None = None, timeout_seconds: float = 15,
+                view: str = "auto") -> bytes:
     if not 1 <= timeout_seconds <= 30:
         raise ValueError("timeout_seconds must be between 1 and 30.")
     if not _capture_lock.acquire(blocking=False):
         raise RuntimeError("A capture is already in progress. Retry after it finishes.")
     try:
-        target = select_window(hwnd)
+        main = select_window(hwnd)
+        target = capture_window(main, view)
         with tempfile.TemporaryDirectory(prefix="mmd-mcp-") as directory:
             output = Path(directory) / "frame.png"
             try:
                 result = subprocess.run(
                     [sys.executable, "-m", "mmd_mcp.capture_worker",
-                     str(target.hwnd), str(target.pid), str(target.process_started), str(output)],
+                     str(main.hwnd), str(target.hwnd), str(target.pid),
+                     str(target.process_started), view, str(output)],
                     stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     timeout=timeout_seconds, creationflags=subprocess.CREATE_NO_WINDOW,
                 )

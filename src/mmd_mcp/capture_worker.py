@@ -6,13 +6,17 @@ from pathlib import Path
 import cv2
 from windows_capture import Frame, InternalCaptureControl, WindowsCapture
 
-from .windows import select_window
+from .windows import capture_window, select_window
 
 
-def capture(hwnd: int, pid: int, started: float, destination: Path) -> None:
-    target = select_window(hwnd)
-    if (target.pid, target.process_started) != (pid, started):
+def capture(main_hwnd: int, hwnd: int, pid: int, started: float,
+            view: str, destination: Path) -> None:
+    main = select_window(main_hwnd)
+    if (main.pid, main.process_started) != (pid, started):
         raise ValueError("MMD process changed. List windows again.")
+    target = capture_window(main, view)
+    if target.hwnd != hwnd:
+        raise ValueError("MMD capture window changed. Retry after switching view modes.")
     session = WindowsCapture(
         window_hwnd=target.hwnd, cursor_capture=False,
         # Keep the OS default border; no permission/config changes needed.
@@ -45,12 +49,14 @@ def capture(hwnd: int, pid: int, started: float, destination: Path) -> None:
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("main_hwnd", type=int)
     parser.add_argument("hwnd", type=int)
     parser.add_argument("pid", type=int)
     parser.add_argument("started", type=float)
+    parser.add_argument("view", choices=["auto", "main", "render"])
     parser.add_argument("destination", type=Path)
     args = parser.parse_args()
-    capture(args.hwnd, args.pid, args.started, args.destination)
+    capture(args.main_hwnd, args.hwnd, args.pid, args.started, args.view, args.destination)
 
 
 if __name__ == "__main__":

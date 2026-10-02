@@ -31,6 +31,39 @@ class ModelListTests(unittest.TestCase):
 
 
 class ObservationTests(unittest.TestCase):
+    def test_reparented_transform_control_is_read_from_render_window(self):
+        main = MMDWindow(123, 456, "MikuMikuDance", False, 1.0)
+        render = MMDWindow(124, 456, "MMD", False, 1.0)
+        reader = UIReader.__new__(UIReader)
+        reader.target = main
+        def find(parent, cid):
+            if parent == 123:
+                import win32gui
+                raise win32gui.error(1421, "GetDlgItem", "Control not found")
+            return 5500
+        with patch("mmd_mcp.ui_state.win32gui.GetDlgItem", side_effect=find), \
+             patch("mmd_mcp.ui_state.win32gui.GetClassName", return_value="Edit"), \
+             patch("mmd_mcp.ui_state.capture_window", return_value=render) as resolve:
+            self.assertEqual(reader.control(550, "Edit"), 5500)
+            resolve.assert_called_once_with(main)
+
+    def test_existing_main_control_does_not_resolve_another_surface(self):
+        reader = UIReader.__new__(UIReader)
+        reader.target = MMDWindow(123, 456, "MikuMikuDance", False, 1.0)
+        with patch("mmd_mcp.ui_state.win32gui.GetDlgItem", return_value=4170), \
+             patch("mmd_mcp.ui_state.win32gui.GetClassName", return_value="Edit"), \
+             patch("mmd_mcp.ui_state.capture_window") as resolve:
+            self.assertEqual(reader.control(417, "Edit"), 4170)
+            resolve.assert_not_called()
+
+    def test_missing_control_reports_unsupported_layout(self):
+        reader = UIReader.__new__(UIReader)
+        reader.target = MMDWindow(123, 456, "MikuMikuDance", False, 1.0)
+        with patch("mmd_mcp.ui_state.win32gui.GetDlgItem", return_value=0), \
+             patch("mmd_mcp.ui_state.capture_window", return_value=reader.target):
+            with self.assertRaisesRegex(RuntimeError, "Unsupported MMD layout"):
+                reader.control(550, "Edit")
+
     def test_camera_mode_never_reads_stale_morph_or_ik_controls(self):
         reader = MagicMock()
         reader.anchor.return_value = ("0", 0, "camera")
