@@ -20,9 +20,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure Windows locale for Japanese UI tests
-        shell: pwsh
+        shell: powershell
         run: |
-          Set-WinSystemLocale ja-JP
+          Set-WinSystemLocale -SystemLocale ja-JP
           $languageList = New-WinUserLanguageList -Language "ja-JP"
           Set-WinUserLanguageList -LanguageList $languageList -Force
           Set-Culture ja-JP
