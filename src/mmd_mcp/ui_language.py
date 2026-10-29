@@ -15,7 +15,7 @@ LABELS = {
     "AVI出力": "output AVI file", "ファイルを開く": "open file data",
     "開く": "open file",
     "モデル情報": "model infomation",
-    "名前を付けて保存の確認": ("Confirm Save As", "Confirm Save As"),
+    "名前を付けて保存の確認": "Confirm Save As",
     "はい(&Y)": ("&Yes", "Yes"),
     "色の設定": "Color", "リップフレーム削除": "delete lip frame",
     "エッジ太さ設定": "thickness of edge line", "地面影色設定": "ground shadow color",
