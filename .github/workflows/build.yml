@@ -2,6 +2,9 @@ name: Build and test
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - ci-validation-jp-20261029
 
 permissions:
   contents: read
