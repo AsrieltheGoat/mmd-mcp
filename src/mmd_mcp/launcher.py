@@ -60,10 +60,12 @@ def launch_mmd(executable: str) -> dict:
     process is suspended, before it can open a project or accept user edits.
     No ordinary-launch fallback: console detachment alone does not escape jobs.
     """
-    path = Path(executable)
-    if not path.is_absolute() or path.name.casefold() != 'mikumikudance.exe' or not path.is_file():
+    supplied_path = Path(executable)
+    if (not supplied_path.is_absolute()
+            or supplied_path.name.casefold() != 'mikumikudance.exe'
+            or not supplied_path.is_file()):
         raise ValueError('Provide the absolute path to MikuMikuDance.exe.')
-    path = path.resolve()
+    path = supplied_path.resolve()
     flags = (subprocess.CREATE_BREAKAWAY_FROM_JOB | subprocess.DETACHED_PROCESS
              | win32con.CREATE_SUSPENDED)
     process = thread = None
