@@ -102,7 +102,6 @@ def owned_dialogs(target):
             if win32gui.IsWindow(handle):
                 raise
 
-
     win32gui.EnumWindows(visit, None)
     return dialogs
 
@@ -273,7 +272,7 @@ def load_file(kind, path, hwnd=None):
             current = len(result["after"]["model_selector"]["models"])
             if current != previous + 1:
                 result["status"] = "verification_failed"
-                result["note"] = "File dialog closed, but model count did not increase by exactly one. Inspect MMD."
+                result["note"] = "File dialog closed, but model count did not increase by exactly one. Inspect MMD before retrying."
         return {"kind": kind, "path": str(candidate), **result,
                 "saved_to_disk": False,
                 "note_on_data": "Native imports can replace current poses/keys. Project loading replaces the current scene. VMD key times are offset by the current frame; move to frame 0 first for file-absolute timing."}
