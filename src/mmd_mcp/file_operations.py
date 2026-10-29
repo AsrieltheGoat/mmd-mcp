@@ -151,7 +151,17 @@ def overwrite_button(dialog, dialogs, path, *, authorized, submitted):
     if len(parents) != 1:
         return None
     edit = filename_edit(parents[0])
-    if edit is None or Path(window_text(edit)).resolve() != path or not path.is_file():
+    if edit is None:
+        return None
+    try:
+        # Resolve both values identically: Windows temporary paths may differ in
+        # letter case or short/long-name representation.
+        selected_path = Path(window_text(edit)).resolve()
+        expected_path = Path(path).resolve()
+        same_path = str(selected_path).casefold() == str(expected_path).casefold()
+    except (OSError, RuntimeError, ValueError):
+        return None
+    if not same_path or not expected_path.is_file():
         return None
     buttons = [item["hwnd"] for item in dialog["controls"] if item["class"] == "Button"
                and matches(item["text"], "はい(&Y)") and item["enabled"]]
