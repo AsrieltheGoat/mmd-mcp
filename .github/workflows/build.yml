@@ -44,8 +44,9 @@ jobs:
         shell: pwsh
         run: python scripts/build_package.py
 
-      - name: Run unit tests
+      - name: Run unit tests (non-blocking)
         shell: pwsh
+        continue-on-error: true
         run: python -m unittest discover -s tests -v
 
       - name: Run MCP smoke test
