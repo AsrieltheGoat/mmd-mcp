@@ -16,6 +16,15 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Configure Windows locale for Japanese UI tests
+        shell: pwsh
+        run: |
+          Set-WinSystemLocale ja-JP
+          Set-WinUserLanguageList ja-JP -Force
+          Set-Culture ja-JP
+          Set-WinHomeLocation -GeoId 122
+          Write-Host "Configured system locale, user language, culture, and region for Japan."
+
       - name: Set up 64-bit Python
         uses: actions/setup-python@v5
         with:
