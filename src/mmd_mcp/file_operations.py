@@ -121,7 +121,7 @@ def button(dialog, control_id):
 
 
 FILE_DIALOG_TITLES = {"load model", "open file data", "save file", "Open", "Save As", "背景画像データ読込", "WAVE Fileを開く", "AVIデータ読込", "AVI出力", "開く", "モーションデータ保存", "ポーズデータ保存", "画像ファイル出力", "ファイルを開く", "ファイルを保存する", "名前を付けて保存", "名前をつけて保存"}
-SAVE_DIALOG_TITLES = {"save file", "Save As", "AVI出力", "モーションデータ保存", "ポーズデータ保存", "画像ファイル出力",
+SAVE_DIALOG_TITLES = {"save file", "Save As", "Confirm Save As", "AVI出力", "モーションデータ保存", "ポーズデータ保存", "画像ファイル出力",
                       "ファイルを保存する", "名前を付けて保存", "名前をつけて保存"}
 
 
