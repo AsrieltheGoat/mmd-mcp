@@ -32,11 +32,6 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-lock.txt
 
-      - name: Set up MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
       - name: Install project and pinned dependencies
         shell: pwsh
         run: |
@@ -44,18 +39,9 @@ jobs:
           python -m pip install -r requirements-lock.txt
           python -m pip install --no-deps -e .
 
-      - name: Build native selection DLL
-        shell: cmd
-        run: scripts\build_native.cmd
-
-      - name: Verify native DLL exists
+      - name: Build and verify Windows x64 wheel
         shell: pwsh
-        run: |
-          $dll = "src/mmd_mcp/_native/mmd_selection.dll"
-          if (-not (Test-Path $dll)) {
-            throw "Native DLL was not produced: $dll"
-          }
-          Get-Item $dll | Format-List FullName, Length
+        run: python scripts/build_package.py
 
       - name: Run unit tests
         shell: pwsh
@@ -64,18 +50,3 @@ jobs:
       - name: Run MCP smoke test
         shell: pwsh
         run: python scripts/smoke_mcp.py
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mmd-mcp-windows-x64-py310
-          path: |
-            src/mmd_mcp/_native/mmd_selection.dll
-            src/mmd_mcp/**
-            pyproject.toml
-            README.md
-            README.en.md
-            LICENSE
-            THIRD_PARTY_NOTICES.md
-          if-no-files-found: error
-          retention-days: 14
