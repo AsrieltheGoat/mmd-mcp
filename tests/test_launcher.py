@@ -28,7 +28,7 @@ class LauncherTests(unittest.TestCase):
         for flag in (launcher.subprocess.CREATE_BREAKAWAY_FROM_JOB,
                      launcher.subprocess.DETACHED_PROCESS, launcher.win32con.CREATE_SUSPENDED):
             self.assertTrue(args[1] & flag)
-        self.assertEqual(args[0], self.exe)
+        self.assertEqual(args[0], self.exe.resolve())
         terminate.assert_not_called()
         process.Close.assert_called_once()
         thread.Close.assert_called_once()
