@@ -20,7 +20,8 @@ jobs:
         shell: pwsh
         run: |
           Set-WinSystemLocale ja-JP
-          Set-WinUserLanguageList ja-JP -Force
+          $languageList = New-WinUserLanguageList -Language "ja-JP"
+          Set-WinUserLanguageList -LanguageList $languageList -Force
           Set-Culture ja-JP
           Set-WinHomeLocation -GeoId 122
           Write-Host "Configured system locale, user language, culture, and region for Japan."
