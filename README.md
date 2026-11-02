@@ -85,7 +85,13 @@ https://65b5-example.ngrok-free.app/mcp
 
 `--allowed-host` にはスキームやパスを含めないホスト名だけを、`--allowed-origin` にはHTTPSスキームとホスト名（パスなし）を指定します。トンネルのホスト名が変わった場合は値を更新してサーバーを再起動してください。代わりにカンマ区切りの `MMD_MCP_ALLOWED_HOSTS` と `MMD_MCP_ALLOWED_ORIGINS` 環境変数でも指定できます。SDKが受け付けるのは完全一致のホスト／Origin（およびポート部分のワイルドカード形式）であり、任意のngrokサブドメインを許可するものではありません。
 
-MMDは引き続き同じWindowsデスクトップ上で起動しておく必要があります。HTTP待受は既定でローカルループバックのみです。LANやインターネットには公開しません。ChatGPT Webなどの外部クライアントから接続する場合は、このローカルエンドポイントの前段に認証付きMCPトンネルまたはリバースプロキシを用意してください。このサーバー自体はOAuthやBearer Token認証を実装していないため、ポートを直接公開したり、待受アドレスを `0.0.0.0` に変更したりしないでください。
+MMDは引き続き同じWindowsデスクトップ上で起動しておく必要があります。HTTP待受は既定でローカルループバックのみです。信頼できるLANやVPN内の全IPv4インターフェースで待ち受ける場合は `--host 0.0.0.0` を指定し、クライアントが接続に使うホスト名またはIPアドレスを `--allowed-host` に完全一致で追加します。Originヘッダーを送るクライアントでは `--allowed-origin` も追加してください。
+
+```powershell
+.venv\\Scripts\\python.exe -m mmd_mcp.server --transport streamable-http --host 0.0.0.0 --port 8765 --path /mcp --allowed-host mmd.example.com --allowed-origin https://mmd.example.com
+```
+
+`0.0.0.0` は全IPv4ネットワークインターフェースで待ち受ける指定です。これだけでWindows Defenderファイアウォール、ルーターのポート転送、DNS、インターネットからの到達性が自動設定されるわけではありません。このサーバー自体はOAuthやBearer Token認証を実装しておらず、MCPツールからデスクトップ上のMMDを操作できます。認証なしのHTTPポートをインターネットへ直接公開しないでください。どこからでもアクセスする場合はVPN、または認証付きTLSトンネル／リバースプロキシを使用し、Host／Originの完全一致チェックを有効に保ってください。
 
 `MMD_MCP_TRANSPORT`、`MMD_MCP_HOST`、`MMD_MCP_PORT`、`MMD_MCP_PATH` の環境変数でも設定できます。CLI引数が環境変数より優先されます。利用可能な引数は `--help` で確認できます。
 
