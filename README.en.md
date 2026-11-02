@@ -85,13 +85,13 @@ https://65b5-example.ngrok-free.app/mcp
 
 Use the hostname only (no scheme or path) for `--allowed-host`; use the HTTPS origin (scheme plus hostname, no path) for `--allowed-origin`. If the tunnel hostname changes, update these values and restart the server. You can instead set comma-separated `MMD_MCP_ALLOWED_HOSTS` and `MMD_MCP_ALLOWED_ORIGINS` environment variables. The SDK only accepts exact host/origin entries (plus its documented wildcard-port form), not arbitrary ngrok subdomains.
 
-MMD must still be running on this same Windows desktop. The HTTP listener binds to loopback by default. To listen on every IPv4 network interface (for example, for a trusted LAN or VPN), use `--host 0.0.0.0` and add the exact client-facing hostname or IP with `--allowed-host`; add its origin with `--allowed-origin` when the client sends an Origin header. For example:
+MMD must still be running on this same Windows desktop. The HTTP listener binds to loopback by default. To listen on every IPv4 network interface (for example, for a trusted LAN or VPN), use `--host 0.0.0.0` and add the exact client-facing hostname or IP with `--allowed-host`; add its origin with `--allowed-origin` when the client sends an Origin header. For example, for a LAN/VPN client connecting to `http://192.168.1.20:8765/mcp`:
 
 ```powershell
-.venv\\Scripts\\python.exe -m mmd_mcp.server --transport streamable-http --host 0.0.0.0 --port 8765 --path /mcp --allowed-host mmd.example.com --allowed-origin https://mmd.example.com
+.venv\\Scripts\\python.exe -m mmd_mcp.server --transport streamable-http --host 0.0.0.0 --port 8765 --path /mcp --allowed-host 192.168.1.20:8765 --allowed-origin http://192.168.1.20:8765
 ```
 
-Binding to `0.0.0.0` makes the port reachable through all available IPv4 interfaces, but does not by itself configure Windows Firewall, router port forwarding, DNS, or public internet reachability. This server does not implement OAuth or bearer-token authentication, and the MCP tools can control MMD on your desktop. Do not expose the unauthenticated HTTP port directly to the public internet. For access from anywhere, use a VPN or an authenticated TLS tunnel/reverse proxy, and keep the exact Host/Origin allow-list enabled.
+The allow-list entries must match the actual HTTP headers exactly. Include a non-default port in `--allowed-host` and `--allowed-origin` when the client-facing URL includes one; omit the port when the URL uses the scheme's default port (for example, HTTPS 443). Binding to `0.0.0.0` makes the port reachable through all available IPv4 interfaces, but does not by itself configure Windows Firewall, router port forwarding, DNS, or public internet reachability. This server does not implement OAuth or bearer-token authentication, and the MCP tools can control MMD on your desktop. Do not expose the unauthenticated HTTP port directly to the public internet. For access from anywhere, use a VPN or an authenticated TLS tunnel/reverse proxy, and keep the exact Host/Origin allow-list enabled.
 
 Options can also be configured with `MMD_MCP_TRANSPORT`, `MMD_MCP_HOST`, `MMD_MCP_PORT`, and `MMD_MCP_PATH`. CLI arguments override the corresponding environment variables. Use `--help` to see the available options.
 
