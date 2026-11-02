@@ -58,7 +58,7 @@ MCPクライアントにstdioサーバーとして登録します。以下のパ
 stdioが既定値なので、既存のMCPクライアント設定はそのまま利用できます。MMDを実行している同じWindowsマシンでHTTP接続を使う場合は、次のように起動します。
 
 ```powershell
-.venv\\Scripts\\python.exe -m mmd_mcp.server --transport streamable-http --host 127.0.0.1 --port 8000
+.venv\Scripts\python.exe -m mmd_mcp.server --transport streamable-http --host 127.0.0.1 --port 8000
 ```
 
 MCPエンドポイント：
