@@ -37,7 +37,7 @@ async def check() -> None:
     command = [
         sys.executable, "-m", "mmd_mcp.server",
         "--transport", "streamable-http",
-        "--host", "127.0.0.1",
+        "--host", "0.0.0.0",
         "--port", str(port),
         "--path", "/mcp",
         "--allowed-host", "bridge.example.test",
@@ -81,8 +81,8 @@ async def check() -> None:
                     assert not missing, f"HTTP server is missing expected tools: {missing}"
                     assert len(names) >= 50, f"Expected at least 50 tools, found {len(names)}"
                     print(
-                        "Streamable HTTP initialize, tunnel Host/Origin allowlist and "
-                        f"tool discovery: OK ({len(names)} tools)"
+                        "Streamable HTTP all-interface bind, forwarded Host/Origin "
+                        f"allowlist and tool discovery: OK ({len(names)} tools)"
                     )
     finally:
         process.terminate()
