@@ -619,13 +619,10 @@ def main():
     if not args.path.startswith("/") or args.path == "/":
         parser.error("--path must be a non-root absolute path such as /mcp")
 
-    allow_remote = os.getenv("MMD_MCP_ALLOW_REMOTE", "").strip().lower() in {
-        "1", "true", "yes", "on"
-    }
-    if args.host not in {"127.0.0.1", "localhost", "::1"} and not allow_remote:
+    if args.host not in {"127.0.0.1", "localhost", "::1"}:
         parser.error(
-            "Refusing to bind beyond loopback. Set MMD_MCP_ALLOW_REMOTE=1 only "
-            "when this server is protected by an authenticated tunnel or proxy."
+            "This server only binds to loopback for safety. Use an authenticated "
+            "tunnel or reverse proxy to make it remotely reachable."
         )
 
     mcp.settings.host = args.host
