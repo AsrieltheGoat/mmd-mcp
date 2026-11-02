@@ -587,8 +587,9 @@ def main():
     """Run MCP over stdio (default) or Streamable HTTP.
 
     HTTP mode keeps the same tool registry and runs on the Windows host that owns
-    the MMD desktop. It is loopback-only by default; remote exposure should happen
-    through an authenticated tunnel or reverse proxy.
+    the MMD desktop. It binds to loopback by default; use 0.0.0.0 to listen on all
+    IPv4 interfaces. Protect non-loopback access with network controls and an
+    authenticated TLS proxy or VPN.
     """
     parser = argparse.ArgumentParser(description="MikuMikuDance MCP server")
     parser.add_argument(
@@ -632,10 +633,9 @@ def main():
     if not args.path.startswith("/") or args.path == "/":
         parser.error("--path must be a non-root absolute path such as /mcp")
 
-    if args.host not in {"127.0.0.1", "localhost", "::1"}:
+    if args.host not in {"127.0.0.1", "localhost", "::1", "0.0.0.0"}:
         parser.error(
-            "This server only binds to loopback for safety. Use an authenticated "
-            "tunnel or reverse proxy to make it remotely reachable."
+            "--host must be 127.0.0.1, localhost, ::1, or 0.0.0.0"
         )
 
     # FastMCP enables DNS-rebinding protection for loopback by default. A tunnel
