@@ -67,6 +67,24 @@ The MCP endpoint is:
 http://127.0.0.1:8000/mcp
 ```
 
+### ngrok and reverse-proxy Host validation
+
+FastMCP validates the incoming `Host` header (and, when present, the `Origin` header) to protect against DNS-rebinding attacks. A tunnel forwards its public hostname, which is different from the local `127.0.0.1` host, so add the exact public hostname to the allowlist. Do not disable DNS-rebinding protection.
+
+For example, if ngrok gives you `https://65b5-example.ngrok-free.app`, start the server like this (replace the example hostname with your current ngrok hostname):
+
+```powershell
+.venv\Scripts\python.exe -m mmd_mcp.server --transport streamable-http --host 127.0.0.1 --port 8765 --path /mcp --allowed-host 65b5-example.ngrok-free.app --allowed-origin https://65b5-example.ngrok-free.app
+```
+
+Configure your remote MCP client with the full public endpoint, including `/mcp`:
+
+```text
+https://65b5-example.ngrok-free.app/mcp
+```
+
+Use the hostname only (no scheme or path) for `--allowed-host`; use the HTTPS origin (scheme plus hostname, no path) for `--allowed-origin`. If the tunnel hostname changes, update these values and restart the server. You can instead set comma-separated `MMD_MCP_ALLOWED_HOSTS` and `MMD_MCP_ALLOWED_ORIGINS` environment variables. The SDK only accepts exact host/origin entries (plus its documented wildcard-port form), not arbitrary ngrok subdomains.
+
 MMD must still be running on this same Windows desktop. The HTTP listener binds to loopback by default; it is not exposed to your LAN or the public internet. For remote clients such as ChatGPT on the web, put an authenticated MCP tunnel or reverse proxy in front of this local endpoint. This server does not currently implement OAuth or bearer-token authentication itself, so do not expose the port directly or change the bind address to `0.0.0.0`.
 
 Options can also be configured with `MMD_MCP_TRANSPORT`, `MMD_MCP_HOST`, `MMD_MCP_PORT`, and `MMD_MCP_PATH`. CLI arguments override the corresponding environment variables. Use `--help` to see the available options.
