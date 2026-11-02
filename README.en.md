@@ -2,7 +2,7 @@
 
 [日本語](README.md) | English
 
-A Windows stdio MCP server for creating scenes in MikuMikuDance: character poses, motion, cameras, lighting, physics, timeline editing, MME assignments, and native image/AVI export.
+A Windows MCP server for creating scenes in MikuMikuDance: character poses, motion, cameras, lighting, physics, timeline editing, MME assignments, and native image/AVI export. It supports stdio for local MCP clients and Streamable HTTP for networked MCP clients.
 
 ![MMD timeline and controls alongside Hatsune Miku posing on a mint-colored stage](assets/mmd-screenshot.jpg)
 
@@ -53,9 +53,28 @@ Register the server in your MCP client, replacing the installation path:
 }
 ```
 
+### Streamable HTTP mode
+
+stdio remains the default, so existing MCP client configurations continue to work unchanged. To run the same tools over Streamable HTTP on the Windows machine running MMD:
+
+```powershell
+.venv\\Scripts\\python.exe -m mmd_mcp.server --transport streamable-http --host 127.0.0.1 --port 8000
+```
+
+The MCP endpoint is:
+
+```text
+http://127.0.0.1:8000/mcp
+```
+
+MMD must still be running on this same Windows desktop. The HTTP listener binds to loopback by default; it is not exposed to your LAN or the public internet. For remote clients such as ChatGPT on the web, put an authenticated MCP tunnel or reverse proxy in front of this local endpoint. This server does not currently implement OAuth or bearer-token authentication itself, so do not expose the port directly or change the bind address to `0.0.0.0`.
+
+Options can also be configured with `MMD_MCP_TRANSPORT`, `MMD_MCP_HOST`, `MMD_MCP_PORT`, and `MMD_MCP_PATH`. CLI arguments override the corresponding environment variables. Use `--help` to see the available options.
+
+
 For an MMD instance that should survive shutdown of its MCP client (such as Codex or Claude Code), run `python -m mmd_mcp.launcher "C:/MMD/MikuMikuDance.exe"` using the Python environment where mmd-mcp is installed. The local Windows WMI broker creates a suspended process; the launcher verifies that it belongs to no Windows job before resuming it. There is no ordinary child-process fallback on failure. Match the returned PID with `mmd_list_windows`. This isolates process lifetime; it does not prevent MMD crashes or Windows shutdown.
 
-Start MMD yourself before use. The server does not start MMD or listen on a network port. When multiple MMD instances are running, obtain their handles with `mmd_list_windows` and pass the intended `hwnd` to each call. Reconnect the MCP client after updating the server.
+Start MMD yourself before use. The server does not start MMD. In stdio mode it does not listen on a network port; in Streamable HTTP mode it listens on the configured local HTTP port. When multiple MMD instances are running, obtain their handles with `mmd_list_windows` and pass the intended `hwnd` to each call. Reconnect the MCP client after updating the server.
 
 ## Tools and workflow
 
