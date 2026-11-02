@@ -2,7 +2,7 @@
 
 日本語 | [English](README.en.md)
 
-MikuMikuDanceの制作操作とMME設定を扱うWindows用stdio MCPサーバーです。キャラクター・カメラ・照明・物理、タイムライン編集、EMMの編集と実機反映、画像・音声付きAVI出力に対応します。
+MikuMikuDanceの制作操作とMME設定を扱うWindows用MCPサーバーです。stdio（ローカルMCPクライアント）とStreamable HTTP（HTTP接続クライアント）に対応します。キャラクター・カメラ・照明・物理、タイムライン編集、EMMの編集と実機反映、画像・音声付きAVI出力に対応します。
 
 ![MMDのタイムラインと操作パネル、ミント色のステージでピースする初音ミク](assets/mmd-screenshot.jpg)
 
@@ -53,6 +53,25 @@ MCPクライアントにstdioサーバーとして登録します。以下のパ
 }
 ```
 
+### Streamable HTTPモード
+
+stdioが既定値なので、既存のMCPクライアント設定はそのまま利用できます。MMDを実行している同じWindowsマシンでHTTP接続を使う場合は、次のように起動します。
+
+```powershell
+.venv\\Scripts\\python.exe -m mmd_mcp.server --transport streamable-http --host 127.0.0.1 --port 8000
+```
+
+MCPエンドポイント：
+
+```text
+http://127.0.0.1:8000/mcp
+```
+
+MMDは引き続き同じWindowsデスクトップ上で起動しておく必要があります。HTTP待受は既定でローカルループバックのみです。LANやインターネットには公開しません。ChatGPT Webなどの外部クライアントから接続する場合は、このローカルエンドポイントの前段に認証付きMCPトンネルまたはリバースプロキシを用意してください。このサーバー自体はOAuthやBearer Token認証を実装していないため、ポートを直接公開したり、待受アドレスを `0.0.0.0` に変更したりしないでください。
+
+`MMD_MCP_TRANSPORT`、`MMD_MCP_HOST`、`MMD_MCP_PORT`、`MMD_MCP_PATH` の環境変数でも設定できます。CLI引数が環境変数より優先されます。利用可能な引数は `--help` で確認できます。
+
+
 MCPクライアント（Codex・Claude Code 等）から制作用MMDを起動する場合は、インストール先のPythonで次を使えます。
 
 ```powershell
@@ -61,7 +80,7 @@ python -m mmd_mcp.launcher "C:/MMD/MikuMikuDance.exe"
 
 WindowsのローカルWMI経由で起動元のMCPクライアントと独立したプロセスを作り、ジョブ非所属を確認してからMMDを実行します。起動に失敗した場合、通常の子プロセスとして再起動はしません。戻り値のPIDを `mmd_list_windows` と照合してください。起動元のMCPクライアントの終了に伴う巻き込みを防ぐための経路で、MMD自身のクラッシュやWindows終了を防ぐものではありません。
 
-通常利用ではMMDを先に起動します。サーバーはMMDの自動起動やネットワーク待受を行いません。複数起動時は `mmd_list_windows` の `hwnd` を各呼び出しへ渡します。
+通常利用ではMMDを先に起動します。サーバーはMMDを自動起動しません。stdioモードではネットワーク待受を行わず、Streamable HTTPモードでは設定したローカルHTTPポートで待ち受けます。複数起動時は `mmd_list_windows` の `hwnd` を各呼び出しへ渡します。
 
 ## ツール
 
