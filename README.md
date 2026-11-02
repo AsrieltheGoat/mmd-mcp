@@ -87,11 +87,13 @@ https://65b5-example.ngrok-free.app/mcp
 
 MMDは引き続き同じWindowsデスクトップ上で起動しておく必要があります。HTTP待受は既定でローカルループバックのみです。信頼できるLANやVPN内の全IPv4インターフェースで待ち受ける場合は `--host 0.0.0.0` を指定し、クライアントが接続に使うホスト名またはIPアドレスを `--allowed-host` に完全一致で追加します。Originヘッダーを送るクライアントでは `--allowed-origin` も追加してください。
 
+LAN／VPN内のクライアントが `http://192.168.1.20:8765/mcp` に接続する例：
+
 ```powershell
-.venv\\Scripts\\python.exe -m mmd_mcp.server --transport streamable-http --host 0.0.0.0 --port 8765 --path /mcp --allowed-host mmd.example.com --allowed-origin https://mmd.example.com
+.venv\\Scripts\\python.exe -m mmd_mcp.server --transport streamable-http --host 0.0.0.0 --port 8765 --path /mcp --allowed-host 192.168.1.20:8765 --allowed-origin http://192.168.1.20:8765
 ```
 
-`0.0.0.0` は全IPv4ネットワークインターフェースで待ち受ける指定です。これだけでWindows Defenderファイアウォール、ルーターのポート転送、DNS、インターネットからの到達性が自動設定されるわけではありません。このサーバー自体はOAuthやBearer Token認証を実装しておらず、MCPツールからデスクトップ上のMMDを操作できます。認証なしのHTTPポートをインターネットへ直接公開しないでください。どこからでもアクセスする場合はVPN、または認証付きTLSトンネル／リバースプロキシを使用し、Host／Originの完全一致チェックを有効に保ってください。
+許可リストには実際のHTTPヘッダーと完全一致する値を指定します。クライアント側URLに既定以外のポートが含まれる場合は、`--allowed-host` と `--allowed-origin` にもポートを含めてください。既定ポート（HTTPSの443など）は省略します。`0.0.0.0` は全IPv4ネットワークインターフェースで待ち受ける指定です。これだけでWindows Defenderファイアウォール、ルーターのポート転送、DNS、インターネットからの到達性が自動設定されるわけではありません。このサーバー自体はOAuthやBearer Token認証を実装しておらず、MCPツールからデスクトップ上のMMDを操作できます。認証なしのHTTPポートをインターネットへ直接公開しないでください。どこからでもアクセスする場合はVPN、または認証付きTLSトンネル／リバースプロキシを使用し、Host／Originの完全一致チェックを有効に保ってください。
 
 `MMD_MCP_TRANSPORT`、`MMD_MCP_HOST`、`MMD_MCP_PORT`、`MMD_MCP_PATH` の環境変数でも設定できます。CLI引数が環境変数より優先されます。利用可能な引数は `--help` で確認できます。
 
