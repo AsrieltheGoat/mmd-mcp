@@ -58,7 +58,7 @@ Register the server in your MCP client, replacing the installation path:
 stdio remains the default, so existing MCP client configurations continue to work unchanged. To run the same tools over Streamable HTTP on the Windows machine running MMD:
 
 ```powershell
-.venv\\Scripts\\python.exe -m mmd_mcp.server --transport streamable-http --host 127.0.0.1 --port 8000
+.venv\Scripts\python.exe -m mmd_mcp.server --transport streamable-http --host 127.0.0.1 --port 8000
 ```
 
 The MCP endpoint is:
