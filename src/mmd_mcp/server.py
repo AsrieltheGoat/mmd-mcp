@@ -7,6 +7,7 @@ import os
 from pydantic import Field
 
 from mcp.server.fastmcp import FastMCP, Image
+from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
 
 from .capture import capture_png
@@ -608,6 +609,18 @@ def main():
         "--path", default=os.getenv("MMD_MCP_PATH", "/mcp"),
         help="Streamable HTTP endpoint path (default: /mcp)",
     )
+    parser.add_argument(
+        "--allowed-host",
+        action="append",
+        default=[value.strip() for value in os.getenv("MMD_MCP_ALLOWED_HOSTS", "").split(",") if value.strip()],
+        help="Additional exact Host header allowed by DNS-rebinding protection (repeatable)",
+    )
+    parser.add_argument(
+        "--allowed-origin",
+        action="append",
+        default=[value.strip() for value in os.getenv("MMD_MCP_ALLOWED_ORIGINS", "").split(",") if value.strip()],
+        help="Additional exact Origin allowed by DNS-rebinding protection (repeatable)",
+    )
     args = parser.parse_args()
 
     if args.transport == "stdio":
@@ -625,6 +638,17 @@ def main():
             "tunnel or reverse proxy to make it remotely reachable."
         )
 
+    # FastMCP enables DNS-rebinding protection for loopback by default. A tunnel
+    # forwards its public Host header to this process, so explicitly add that
+    # exact hostname (and browser Origin, when present) instead of disabling checks.
+    security = mcp.settings.transport_security or TransportSecuritySettings(
+        enable_dns_rebinding_protection=True
+    )
+    mcp.settings.transport_security = TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=list(dict.fromkeys([*security.allowed_hosts, *args.allowed_host])),
+        allowed_origins=list(dict.fromkeys([*security.allowed_origins, *args.allowed_origin])),
+    )
     mcp.settings.host = args.host
     mcp.settings.port = args.port
     mcp.settings.streamable_http_path = args.path
