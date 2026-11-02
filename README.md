@@ -67,6 +67,24 @@ MCPエンドポイント：
 http://127.0.0.1:8000/mcp
 ```
 
+### ngrok・リバースプロキシのHost検証
+
+FastMCPはDNS rebinding対策として、リクエストの `Host` ヘッダー（存在する場合は `Origin` ヘッダーも）を検証します。トンネル経由では公開ホスト名がローカルの `127.0.0.1` と異なるため、公開ホスト名を許可リストへ明示的に追加します。DNS rebinding対策自体は無効にしないでください。
+
+たとえばngrokから `https://65b5-example.ngrok-free.app` が割り当てられた場合、次のように起動します（ホスト名は実際のngrok URLに置き換えてください）。
+
+```powershell
+.venv\Scripts\python.exe -m mmd_mcp.server --transport streamable-http --host 127.0.0.1 --port 8765 --path /mcp --allowed-host 65b5-example.ngrok-free.app --allowed-origin https://65b5-example.ngrok-free.app
+```
+
+外部MCPクライアントには、末尾の `/mcp` まで含めた公開URLを登録します。
+
+```text
+https://65b5-example.ngrok-free.app/mcp
+```
+
+`--allowed-host` にはスキームやパスを含めないホスト名だけを、`--allowed-origin` にはHTTPSスキームとホスト名（パスなし）を指定します。トンネルのホスト名が変わった場合は値を更新してサーバーを再起動してください。代わりにカンマ区切りの `MMD_MCP_ALLOWED_HOSTS` と `MMD_MCP_ALLOWED_ORIGINS` 環境変数でも指定できます。SDKが受け付けるのは完全一致のホスト／Origin（およびポート部分のワイルドカード形式）であり、任意のngrokサブドメインを許可するものではありません。
+
 MMDは引き続き同じWindowsデスクトップ上で起動しておく必要があります。HTTP待受は既定でローカルループバックのみです。LANやインターネットには公開しません。ChatGPT Webなどの外部クライアントから接続する場合は、このローカルエンドポイントの前段に認証付きMCPトンネルまたはリバースプロキシを用意してください。このサーバー自体はOAuthやBearer Token認証を実装していないため、ポートを直接公開したり、待受アドレスを `0.0.0.0` に変更したりしないでください。
 
 `MMD_MCP_TRANSPORT`、`MMD_MCP_HOST`、`MMD_MCP_PORT`、`MMD_MCP_PATH` の環境変数でも設定できます。CLI引数が環境変数より優先されます。利用可能な引数は `--help` で確認できます。
