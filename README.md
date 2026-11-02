@@ -2,7 +2,7 @@
 
 日本語 | [English](README.en.md)
 
-MikuMikuDanceの制作操作とMME設定を扱うWindows用stdio MCPサーバーです。キャラクター・カメラ・照明・物理、タイムライン編集、EMMの編集と実機反映、画像・音声付きAVI出力に対応します。
+MikuMikuDanceの制作操作とMME設定を扱うWindows用MCPサーバーです。stdio（ローカルMCPクライアント）とStreamable HTTP（HTTP接続クライアント）に対応します。キャラクター・カメラ・照明・物理、タイムライン編集、EMMの編集と実機反映、画像・音声付きAVI出力に対応します。
 
 ![MMDのタイムラインと操作パネル、ミント色のステージでピースする初音ミク](assets/mmd-screenshot.jpg)
 
@@ -53,6 +53,51 @@ MCPクライアントにstdioサーバーとして登録します。以下のパ
 }
 ```
 
+### Streamable HTTPモード
+
+stdioが既定値なので、既存のMCPクライアント設定はそのまま利用できます。MMDを実行している同じWindowsマシンでHTTP接続を使う場合は、次のように起動します。
+
+```powershell
+.venv\Scripts\python.exe -m mmd_mcp.server --transport streamable-http --host 127.0.0.1 --port 8000
+```
+
+MCPエンドポイント：
+
+```text
+http://127.0.0.1:8000/mcp
+```
+
+### ngrok・リバースプロキシのHost検証
+
+FastMCPはDNS rebinding対策として、リクエストの `Host` ヘッダー（存在する場合は `Origin` ヘッダーも）を検証します。トンネル経由では公開ホスト名がローカルの `127.0.0.1` と異なるため、公開ホスト名を許可リストへ明示的に追加します。DNS rebinding対策自体は無効にしないでください。
+
+たとえばngrokから `https://65b5-example.ngrok-free.app` が割り当てられた場合、次のように起動します（ホスト名は実際のngrok URLに置き換えてください）。
+
+```powershell
+.venv\Scripts\python.exe -m mmd_mcp.server --transport streamable-http --host 127.0.0.1 --port 8765 --path /mcp --allowed-host 65b5-example.ngrok-free.app --allowed-origin https://65b5-example.ngrok-free.app
+```
+
+外部MCPクライアントには、末尾の `/mcp` まで含めた公開URLを登録します。
+
+```text
+https://65b5-example.ngrok-free.app/mcp
+```
+
+`--allowed-host` にはスキームやパスを含めないホスト名だけを、`--allowed-origin` にはHTTPSスキームとホスト名（パスなし）を指定します。トンネルのホスト名が変わった場合は値を更新してサーバーを再起動してください。代わりにカンマ区切りの `MMD_MCP_ALLOWED_HOSTS` と `MMD_MCP_ALLOWED_ORIGINS` 環境変数でも指定できます。SDKが受け付けるのは完全一致のホスト／Origin（およびポート部分のワイルドカード形式）であり、任意のngrokサブドメインを許可するものではありません。
+
+MMDは引き続き同じWindowsデスクトップ上で起動しておく必要があります。HTTP待受は既定でローカルループバックのみです。信頼できるLANやVPN内の全IPv4インターフェースで待ち受ける場合は `--host 0.0.0.0` を指定し、クライアントが接続に使うホスト名またはIPアドレスを `--allowed-host` に完全一致で追加します。Originヘッダーを送るクライアントでは `--allowed-origin` も追加してください。
+
+LAN／VPN内のクライアントが `http://192.168.1.20:8765/mcp` に接続する例：
+
+```powershell
+.venv\\Scripts\\python.exe -m mmd_mcp.server --transport streamable-http --host 0.0.0.0 --port 8765 --path /mcp --allowed-host 192.168.1.20:8765 --allowed-origin http://192.168.1.20:8765
+```
+
+許可リストには実際のHTTPヘッダーと完全一致する値を指定します。クライアント側URLに既定以外のポートが含まれる場合は、`--allowed-host` と `--allowed-origin` にもポートを含めてください。既定ポート（HTTPSの443など）は省略します。`0.0.0.0` は全IPv4ネットワークインターフェースで待ち受ける指定です。これだけでWindows Defenderファイアウォール、ルーターのポート転送、DNS、インターネットからの到達性が自動設定されるわけではありません。このサーバー自体はOAuthやBearer Token認証を実装しておらず、MCPツールからデスクトップ上のMMDを操作できます。認証なしのHTTPポートをインターネットへ直接公開しないでください。どこからでもアクセスする場合はVPN、または認証付きTLSトンネル／リバースプロキシを使用し、Host／Originの完全一致チェックを有効に保ってください。
+
+`MMD_MCP_TRANSPORT`、`MMD_MCP_HOST`、`MMD_MCP_PORT`、`MMD_MCP_PATH` の環境変数でも設定できます。CLI引数が環境変数より優先されます。利用可能な引数は `--help` で確認できます。
+
+
 MCPクライアント（Codex・Claude Code 等）から制作用MMDを起動する場合は、インストール先のPythonで次を使えます。
 
 ```powershell
@@ -61,7 +106,7 @@ python -m mmd_mcp.launcher "C:/MMD/MikuMikuDance.exe"
 
 WindowsのローカルWMI経由で起動元のMCPクライアントと独立したプロセスを作り、ジョブ非所属を確認してからMMDを実行します。起動に失敗した場合、通常の子プロセスとして再起動はしません。戻り値のPIDを `mmd_list_windows` と照合してください。起動元のMCPクライアントの終了に伴う巻き込みを防ぐための経路で、MMD自身のクラッシュやWindows終了を防ぐものではありません。
 
-通常利用ではMMDを先に起動します。サーバーはMMDの自動起動やネットワーク待受を行いません。複数起動時は `mmd_list_windows` の `hwnd` を各呼び出しへ渡します。
+通常利用ではMMDを先に起動します。サーバーはMMDを自動起動しません。stdioモードではネットワーク待受を行わず、Streamable HTTPモードでは設定したローカルHTTPポートで待ち受けます。複数起動時は `mmd_list_windows` の `hwnd` を各呼び出しへ渡します。
 
 ## ツール
 

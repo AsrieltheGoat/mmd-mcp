@@ -2,7 +2,7 @@
 
 [日本語](README.md) | English
 
-A Windows stdio MCP server for creating scenes in MikuMikuDance: character poses, motion, cameras, lighting, physics, timeline editing, MME assignments, and native image/AVI export.
+A Windows MCP server for creating scenes in MikuMikuDance: character poses, motion, cameras, lighting, physics, timeline editing, MME assignments, and native image/AVI export. It supports stdio for local MCP clients and Streamable HTTP for networked MCP clients.
 
 ![MMD timeline and controls alongside Hatsune Miku posing on a mint-colored stage](assets/mmd-screenshot.jpg)
 
@@ -53,9 +53,52 @@ Register the server in your MCP client, replacing the installation path:
 }
 ```
 
+### Streamable HTTP mode
+
+stdio remains the default, so existing MCP client configurations continue to work unchanged. To run the same tools over Streamable HTTP on the Windows machine running MMD:
+
+```powershell
+.venv\Scripts\python.exe -m mmd_mcp.server --transport streamable-http --host 127.0.0.1 --port 8000
+```
+
+The MCP endpoint is:
+
+```text
+http://127.0.0.1:8000/mcp
+```
+
+### ngrok and reverse-proxy Host validation
+
+FastMCP validates the incoming `Host` header (and, when present, the `Origin` header) to protect against DNS-rebinding attacks. A tunnel forwards its public hostname, which is different from the local `127.0.0.1` host, so add the exact public hostname to the allowlist. Do not disable DNS-rebinding protection.
+
+For example, if ngrok gives you `https://65b5-example.ngrok-free.app`, start the server like this (replace the example hostname with your current ngrok hostname):
+
+```powershell
+.venv\Scripts\python.exe -m mmd_mcp.server --transport streamable-http --host 127.0.0.1 --port 8765 --path /mcp --allowed-host 65b5-example.ngrok-free.app --allowed-origin https://65b5-example.ngrok-free.app
+```
+
+Configure your remote MCP client with the full public endpoint, including `/mcp`:
+
+```text
+https://65b5-example.ngrok-free.app/mcp
+```
+
+Use the hostname only (no scheme or path) for `--allowed-host`; use the HTTPS origin (scheme plus hostname, no path) for `--allowed-origin`. If the tunnel hostname changes, update these values and restart the server. You can instead set comma-separated `MMD_MCP_ALLOWED_HOSTS` and `MMD_MCP_ALLOWED_ORIGINS` environment variables. The SDK only accepts exact host/origin entries (plus its documented wildcard-port form), not arbitrary ngrok subdomains.
+
+MMD must still be running on this same Windows desktop. The HTTP listener binds to loopback by default. To listen on every IPv4 network interface (for example, for a trusted LAN or VPN), use `--host 0.0.0.0` and add the exact client-facing hostname or IP with `--allowed-host`; add its origin with `--allowed-origin` when the client sends an Origin header. For example, for a LAN/VPN client connecting to `http://192.168.1.20:8765/mcp`:
+
+```powershell
+.venv\\Scripts\\python.exe -m mmd_mcp.server --transport streamable-http --host 0.0.0.0 --port 8765 --path /mcp --allowed-host 192.168.1.20:8765 --allowed-origin http://192.168.1.20:8765
+```
+
+The allow-list entries must match the actual HTTP headers exactly. Include a non-default port in `--allowed-host` and `--allowed-origin` when the client-facing URL includes one; omit the port when the URL uses the scheme's default port (for example, HTTPS 443). Binding to `0.0.0.0` makes the port reachable through all available IPv4 interfaces, but does not by itself configure Windows Firewall, router port forwarding, DNS, or public internet reachability. This server does not implement OAuth or bearer-token authentication, and the MCP tools can control MMD on your desktop. Do not expose the unauthenticated HTTP port directly to the public internet. For access from anywhere, use a VPN or an authenticated TLS tunnel/reverse proxy, and keep the exact Host/Origin allow-list enabled.
+
+Options can also be configured with `MMD_MCP_TRANSPORT`, `MMD_MCP_HOST`, `MMD_MCP_PORT`, and `MMD_MCP_PATH`. CLI arguments override the corresponding environment variables. Use `--help` to see the available options.
+
+
 For an MMD instance that should survive shutdown of its MCP client (such as Codex or Claude Code), run `python -m mmd_mcp.launcher "C:/MMD/MikuMikuDance.exe"` using the Python environment where mmd-mcp is installed. The local Windows WMI broker creates a suspended process; the launcher verifies that it belongs to no Windows job before resuming it. There is no ordinary child-process fallback on failure. Match the returned PID with `mmd_list_windows`. This isolates process lifetime; it does not prevent MMD crashes or Windows shutdown.
 
-Start MMD yourself before use. The server does not start MMD or listen on a network port. When multiple MMD instances are running, obtain their handles with `mmd_list_windows` and pass the intended `hwnd` to each call. Reconnect the MCP client after updating the server.
+Start MMD yourself before use. The server does not start MMD. In stdio mode it does not listen on a network port; in Streamable HTTP mode it listens on the configured local HTTP port. When multiple MMD instances are running, obtain their handles with `mmd_list_windows` and pass the intended `hwnd` to each call. Reconnect the MCP client after updating the server.
 
 ## Tools and workflow
 

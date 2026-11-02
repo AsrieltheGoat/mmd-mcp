@@ -1,10 +1,13 @@
-"""MMD observation and explicit bone-editing tools over stdio."""
+"""MMD MCP server. Supports stdio (default) and Streamable HTTP transports."""
 
 from typing import Any, Annotated, Literal
+import argparse
+import os
 
 from pydantic import Field
 
 from mcp.server.fastmcp import FastMCP, Image
+from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
 
 from .capture import capture_png
@@ -579,8 +582,77 @@ def mmd_capture_window(hwnd: int | None = None,
     return Image(data=capture_png(hwnd, view=view), format="png")
 
 
+
 def main():
-    mcp.run(transport="stdio")
+    """Run MCP over stdio (default) or Streamable HTTP.
+
+    HTTP mode keeps the same tool registry and runs on the Windows host that owns
+    the MMD desktop. It binds to loopback by default; use 0.0.0.0 to listen on all
+    IPv4 interfaces. Protect non-loopback access with network controls and an
+    authenticated TLS proxy or VPN.
+    """
+    parser = argparse.ArgumentParser(description="MikuMikuDance MCP server")
+    parser.add_argument(
+        "--transport",
+        choices=("stdio", "streamable-http"),
+        default=os.getenv("MMD_MCP_TRANSPORT", "stdio"),
+        help="MCP transport (default: stdio)",
+    )
+    parser.add_argument(
+        "--host", default=os.getenv("MMD_MCP_HOST", "127.0.0.1"),
+        help="HTTP bind address (default: 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port", type=int, default=int(os.getenv("MMD_MCP_PORT", "8000")),
+        help="HTTP port (default: 8000)",
+    )
+    parser.add_argument(
+        "--path", default=os.getenv("MMD_MCP_PATH", "/mcp"),
+        help="Streamable HTTP endpoint path (default: /mcp)",
+    )
+    parser.add_argument(
+        "--allowed-host",
+        action="append",
+        default=[value.strip() for value in os.getenv("MMD_MCP_ALLOWED_HOSTS", "").split(",") if value.strip()],
+        help="Additional exact Host header allowed by DNS-rebinding protection (repeatable)",
+    )
+    parser.add_argument(
+        "--allowed-origin",
+        action="append",
+        default=[value.strip() for value in os.getenv("MMD_MCP_ALLOWED_ORIGINS", "").split(",") if value.strip()],
+        help="Additional exact Origin allowed by DNS-rebinding protection (repeatable)",
+    )
+    args = parser.parse_args()
+
+    if args.transport == "stdio":
+        mcp.run(transport="stdio")
+        return
+
+    if not 1 <= args.port <= 65535:
+        parser.error("--port must be between 1 and 65535")
+    if not args.path.startswith("/") or args.path == "/":
+        parser.error("--path must be a non-root absolute path such as /mcp")
+
+    if args.host not in {"127.0.0.1", "localhost", "::1", "0.0.0.0"}:
+        parser.error(
+            "--host must be 127.0.0.1, localhost, ::1, or 0.0.0.0"
+        )
+
+    # FastMCP enables DNS-rebinding protection for loopback by default. A tunnel
+    # forwards its public Host header to this process, so explicitly add that
+    # exact hostname (and browser Origin, when present) instead of disabling checks.
+    security = mcp.settings.transport_security or TransportSecuritySettings(
+        enable_dns_rebinding_protection=True
+    )
+    mcp.settings.transport_security = TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=list(dict.fromkeys([*security.allowed_hosts, *args.allowed_host])),
+        allowed_origins=list(dict.fromkeys([*security.allowed_origins, *args.allowed_origin])),
+    )
+    mcp.settings.host = args.host
+    mcp.settings.port = args.port
+    mcp.settings.streamable_http_path = args.path
+    mcp.run(transport="streamable-http")
 
 
 if __name__ == "__main__":
